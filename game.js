@@ -217,15 +217,49 @@ function update() {
         }
     }
 
-    // Hazard collision
+    // Check if a point is inside a triangle
+function isPointInTriangle(px, py, ax, ay, bx, by, cx, cy) {
+    // Barycentric coordinate method
+    const v0x = cx - ax, v0y = cy - ay;
+    const v1x = bx - ax, v1y = by - ay;
+    const v2x = px - ax, v2y = py - ay;
+
+    const dot00 = v0x * v0x + v0y * v0y;
+    const dot01 = v0x * v1x + v0y * v1y;
+    const dot02 = v0x * v2x + v0y * v2y;
+    const dot11 = v1x * v1x + v1y * v1y;
+    const dot12 = v1x * v2x + v1y * v2y;
+
+    const invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+    const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+    const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+    return (u >= 0) && (v >= 0) && (u + v <= 1);
+}
+
+// Hazard collision (triangular)
     for (let hazard of level.hazards) {
-        if (
-            player.x + player.width > hazard.x &&
-            player.x < hazard.x + hazard.w &&
-            player.y + player.height > hazard.y &&
-            player.y < hazard.y + hazard.h
-        ) {
-            resetPlayer();
+        // Triangle vertices
+        const ax = hazard.x + hazard.w / 2;  // top center
+        const ay = hazard.y;
+        const bx = hazard.x + hazard.w;       // bottom right
+        const by = hazard.y + hazard.h;
+        const cx = hazard.x;                  // bottom left
+        const cy = hazard.y + hazard.h;
+
+        // Check multiple points on player for better detection
+        const checkPoints = [
+            { x: player.x + player.width / 2, y: player.y + player.height }, // bottom center
+            { x: player.x + player.width / 2, y: player.y + player.height / 2 }, // center
+            { x: player.x, y: player.y + player.height }, // bottom left
+            { x: player.x + player.width, y: player.y + player.height } // bottom right
+        ];
+
+        for (let point of checkPoints) {
+            if (isPointInTriangle(point.x, point.y, ax, ay, bx, by, cx, cy)) {
+                resetPlayer();
+                break;
+            }
         }
     }
 
