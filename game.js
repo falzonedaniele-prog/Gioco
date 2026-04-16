@@ -108,20 +108,20 @@ const levels = [
         name: "The Void",
         narrative: "Everything is fading. Only memories remain. Make the final jump.",
         platforms: [
-            { x: 50, y: 700, w: 100, h: 20 },
-            { x: 300, y: 650, w: 80, h: 20 },
-            { x: 550, y: 580, w: 70, h: 20 },
-            { x: 800, y: 500, w: 80, h: 20 },
-            { x: 1050, y: 400, w: 100, h: 20 },
-            { x: 200, y: 350, w: 75, h: 20 },
-            { x: 550, y: 280, w: 85, h: 20 },
-            { x: 900, y: 200, w: 90, h: 20 },
-            { x: 600, y: 100, w: 150, h: 30 }
+            { x: 50, y: 700, w: 100, h: 20 }, //spawn platform
+            { x: 300, y: 650, w: 80, h: 20 }, //first platform
+            { x: 550, y: 580, w: 70, h: 20 }, //second platform
+            { x: 790, y: 505, w: 80, h: 20 }, //third platform
+            { x: 650, y: 400, w: 100, h: 20 }, //forth platform
+            { x: 400, y: 230, w: 75, h: 20 }, //sixth platform
+            { x: 550, y: 280, w: 85, h: 20 }, //fifth platform
+            { x: 900, y: 200, w: 90, h: 20 }, //final platform
+            { x: 600, y: 100, w: 150, h: 30 } // seventh platform
         ],
         hazards: [
-            { x: 400, y: 600, w: 80, h: 50 },
-            { x: 700, y: 450, w: 60, h: 60 },
-            { x: 300, y: 300, w: 90, h: 40 }
+            { x: 400, y: 600, w: 80, h: 50 }, //fist hazard
+            { x: 700, y: 550, w: 60, h: 60 }, //second hazard
+            { x: 300, y: 300, w: 90, h: 40 } //third hazard
         ],
         memoryFragments: [
             { x: 900, y: 150, collected: false, color: '#FFE66D' }
@@ -129,8 +129,8 @@ const levels = [
         triggers: [
             { x: 600, y: 50, w: 150, h: 100, text: "Memory Fragment 3: A moment of triumph." }
         ],
-        spawnX: 70,
-        spawnY: 650
+        spawnX: 70, 
+        spawnY: 650 
     }
 ];
 
