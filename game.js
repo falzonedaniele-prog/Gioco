@@ -30,13 +30,17 @@ let gameState = {
 let player = {
     x: 0,
     y: 0,
-    width: 15,
-    height: 15,
+    width: 24,
+    height: 24,
     velocityX: 0,
     velocityY: 0,
     jumping: false,
     grounded: false
 };
+
+// Player image
+const playerImage = new Image();
+playerImage.src = 'images/cursor.png';
 
 // Keyboard input
 const keys = {};
@@ -382,12 +386,16 @@ function draw() {
 
     ctx.filter = 'none';
 
-    // Draw player (glowing white square)
+    // Draw player (cursor image)
     const glowSize = 4 + Math.sin(Date.now() / 50) * 2;
     ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
     ctx.shadowBlur = glowSize;
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    if (playerImage.complete && playerImage.naturalWidth !== 0) {
+        ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+    } else {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
     ctx.shadowBlur = 0;
 
     // Draw UI
