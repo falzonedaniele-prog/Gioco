@@ -42,6 +42,33 @@ let player = {
 const playerImage = new Image();
 playerImage.src = 'images/cursor.png';
 
+// Platform images
+const platformImageKeys = ['corrupted_folder', 'corrupted_file'];
+const platformImages = {};
+const DEFAULT_PLATFORM_IMAGE = 'corrupted_folder';
+
+for (let key of platformImageKeys) {
+    const image = new Image();
+    image.src = `images/${key}.png`;
+    platformImages[key] = image;
+}
+
+function getPlatformBounds(platform) {
+    const image = getPlatformImage(platform);
+    const width = platform.w || (image && image.naturalWidth) || 100;
+    let height = platform.h || (image && image.naturalHeight) || 20;
+
+    if (image && image.naturalWidth && image.naturalHeight && platform.w) {
+        height = Math.round((image.naturalHeight / image.naturalWidth) * width);
+    }
+
+    return { x: platform.x, y: platform.y, w: width, h: height };
+}
+
+function getPlatformImage(platform) {
+    return platformImages[platform.image || DEFAULT_PLATFORM_IMAGE] || platformImages[DEFAULT_PLATFORM_IMAGE];
+}
+
 // Keyboard input
 const keys = {};
 window.addEventListener('keydown', (e) => {
@@ -57,15 +84,15 @@ const levels = [
         name: "The Desktop",
         narrative: "A familiar place, corrupted. Find what remains before it's gone forever.",
         platforms: [
-            { x: 100, y: 700, w: 150, h: 20 },
-            { x: 350, y: 650, w: 120, h: 20 },
-            { x: 600, y: 600, w: 100, h: 20 },
-            { x: 800, y: 550, w: 120, h: 20 },
-            { x: 1000, y: 600, w: 150, h: 20 },
-            { x: 200, y: 450, w: 100, h: 20 },
-            { x: 500, y: 400, w: 130, h: 20 },
-            { x: 800, y: 350, w: 140, h: 20 },
-            { x: 1050, y: 300, w: 100, h: 20 }
+            { x: 100, y: 700, w: 150, h: 20, image: 'corrupted_folder' },
+            { x: 350, y: 650, w: 120, h: 20, image: 'corrupted_file' },
+            { x: 600, y: 600, w: 100, h: 20, image: 'corrupted_folder' },
+            { x: 800, y: 550, w: 120, h: 20, image: 'corrupted_file' },
+            { x: 1000, y: 600, w: 150, h: 20, image: 'corrupted_folder' },
+            { x: 200, y: 450, w: 100, h: 20, image: 'corrupted_file' },
+            { x: 500, y: 400, w: 130, h: 20, image: 'corrupted_folder' },
+            { x: 800, y: 350, w: 140, h: 20, image: 'corrupted_file' },
+            { x: 1050, y: 300, w: 100, h: 20, image: 'corrupted_folder' }
         ],
         hazards: [
             { x: 400, y: 500, w: 50, h: 50 },
@@ -84,15 +111,15 @@ const levels = [
         name: "The Fade",
         narrative: "Colors drain away. Platforms crumble. Time is running out.",
         platforms: [
-            { x: 50, y: 700, w: 120, h: 20 },
-            { x: 300, y: 650, w: 100, h: 20 },
-            { x: 550, y: 580, w: 90, h: 20 },
-            { x: 750, y: 500, w: 80, h: 20 },
-            { x: 950, y: 420, w: 100, h: 20 },
-            { x: 150, y: 380, w: 110, h: 20 },
-            { x: 450, y: 320, w: 95, h: 20 },
-            { x: 750, y: 250, w: 85, h: 20 },
-            { x: 1050, y: 200, w: 100, h: 20 }
+            { x: 50, y: 700, w: 120, h: 20, image: 'corrupted_file' },
+            { x: 300, y: 650, w: 100, h: 20, image: 'corrupted_folder' },
+            { x: 550, y: 580, w: 90, h: 20, image: 'corrupted_file' },
+            { x: 750, y: 500, w: 80, h: 20, image: 'corrupted_folder' },
+            { x: 950, y: 420, w: 100, h: 20, image: 'corrupted_file' },
+            { x: 150, y: 380, w: 110, h: 20, image: 'corrupted_folder' },
+            { x: 450, y: 320, w: 95, h: 20, image: 'corrupted_file' },
+            { x: 750, y: 250, w: 85, h: 20, image: 'corrupted_folder' },
+            { x: 1050, y: 200, w: 100, h: 20, image: 'corrupted_file' }
         ],
         hazards: [
             { x: 200, y: 600, w: 60, h: 60 },
@@ -112,15 +139,15 @@ const levels = [
         name: "The Void",
         narrative: "Everything is fading. Only memories remain. Make the final jump.",
         platforms: [
-            { x: 50, y: 700, w: 100, h: 20 }, //spawn platform
-            { x: 300, y: 650, w: 80, h: 20 }, //first platform
-            { x: 550, y: 580, w: 70, h: 20 }, //second platform
-            { x: 790, y: 505, w: 80, h: 20 }, //third platform
-            { x: 650, y: 400, w: 100, h: 20 }, //forth platform
-            { x: 400, y: 230, w: 75, h: 20 }, //sixth platform
-            { x: 550, y: 280, w: 85, h: 20 }, //fifth platform
-            { x: 900, y: 200, w: 90, h: 20 }, //final platform
-            { x: 600, y: 100, w: 150, h: 30 } // seventh platform
+            { x: 50, y: 700, w: 100, h: 20, image: 'corrupted_folder' }, //spawn platform
+            { x: 300, y: 650, w: 80, h: 20, image: 'corrupted_file' }, //first platform
+            { x: 550, y: 580, w: 70, h: 20, image: 'corrupted_folder' }, //second platform
+            { x: 790, y: 505, w: 80, h: 20, image: 'corrupted_file' }, //third platform
+            { x: 650, y: 400, w: 100, h: 20, image: 'corrupted_folder' }, //forth platform
+            { x: 400, y: 230, w: 75, h: 20, image: 'corrupted_file' }, //sixth platform
+            { x: 550, y: 280, w: 85, h: 20, image: 'corrupted_folder' }, //fifth platform
+            { x: 900, y: 200, w: 90, h: 20, image: 'corrupted_file' }, //final platform
+            { x: 600, y: 100, w: 150, h: 30, image: 'corrupted_folder' } // seventh platform
         ],
         hazards: [
             { x: 400, y: 600, w: 80, h: 50 }, //fist hazard
@@ -208,14 +235,16 @@ function update() {
 
     // Platform collision
     for (let platform of level.platforms) {
+        const bounds = getPlatformBounds(platform);
+
         if (
             player.velocityY >= 0 &&
-            player.y + player.height >= platform.y &&
-            player.y + player.height <= platform.y + platform.h + 5 &&
-            player.x + player.width > platform.x &&
-            player.x < platform.x + platform.w
+            player.y + player.height >= bounds.y &&
+            player.y + player.height <= bounds.y + bounds.h + 5 &&
+            player.x + player.width > bounds.x &&
+            player.x < bounds.x + bounds.w
         ) {
-            player.y = platform.y - player.height;
+            player.y = bounds.y - player.height;
             player.velocityY = 0;
             player.grounded = true;
         }
@@ -353,12 +382,18 @@ function draw() {
     ctx.filter = `grayscale(${gameState.desaturation})`;
 
     // Draw platforms
-    ctx.fillStyle = '#333333';
     for (let platform of level.platforms) {
-        ctx.fillRect(platform.x, platform.y, platform.w, platform.h);
-        ctx.strokeStyle = '#555555';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(platform.x, platform.y, platform.w, platform.h);
+        const bounds = getPlatformBounds(platform);
+        const platformImg = getPlatformImage(platform);
+
+        if (platformImg && platformImg.complete && platformImg.naturalWidth !== 0) {
+            ctx.drawImage(platformImg, bounds.x, bounds.y, bounds.w, bounds.h);
+        } else {
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
+        }
+
+
     }
 
     // Draw hazards (red triangles)
