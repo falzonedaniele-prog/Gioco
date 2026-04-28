@@ -23,7 +23,12 @@ let gameState = {
     currentMessage: '',
     messageTimer: 0,
     desaturation: 0,
-    playerResetCount: 0
+    playerResetCount: 0,
+    memoryImageActive: false,
+    memoryImageIndex: -1,
+    memoryImageElapsed: 0,
+    memoryImagePausedSince: 0,
+    totalPausedTime: 0
 };
 
 // Player object
@@ -67,6 +72,45 @@ function getPlatformBounds(platform) {
 
 function getPlatformImage(platform) {
     return platformImages[platform.image || DEFAULT_PLATFORM_IMAGE] || platformImages[DEFAULT_PLATFORM_IMAGE];
+}
+
+const memoryFragmentImageFiles = ['ChildLaugh.jpg', 'Companion.jpg', 'Victory.jpg'];
+const memoryFragmentImages = memoryFragmentImageFiles.map((file) => {
+    const image = new Image();
+    image.src = `images/${file}`;
+    return image;
+});
+
+const MEMORY_IMAGE_FADE_MS = 500;
+const MEMORY_IMAGE_SHOW_MS = 1000;
+const MEMORY_IMAGE_TOTAL_MS = MEMORY_IMAGE_FADE_MS * 2 + MEMORY_IMAGE_SHOW_MS;
+
+function startMemoryImage(index) {
+    gameState.memoryImageActive = true;
+    gameState.memoryImageIndex = index;
+    gameState.memoryImageElapsed = 0;
+    gameState.memoryImagePausedSince = Date.now();
+}
+
+function stopMemoryImage() {
+    if (gameState.memoryImagePausedSince) {
+        gameState.totalPausedTime += Date.now() - gameState.memoryImagePausedSince;
+        gameState.memoryImagePausedSince = 0;
+    }
+    gameState.memoryImageActive = false;
+    gameState.memoryImageIndex = -1;
+    gameState.memoryImageElapsed = 0;
+}
+
+function getMemoryImageAlpha() {
+    const elapsed = gameState.memoryImageElapsed;
+    if (elapsed < MEMORY_IMAGE_FADE_MS) {
+        return elapsed / MEMORY_IMAGE_FADE_MS;
+    }
+    if (elapsed <= MEMORY_IMAGE_FADE_MS + MEMORY_IMAGE_SHOW_MS) {
+        return 1;
+    }
+    return 1 - ((elapsed - MEMORY_IMAGE_FADE_MS - MEMORY_IMAGE_SHOW_MS) / MEMORY_IMAGE_FADE_MS);
 }
 
 // Keyboard input
@@ -173,6 +217,11 @@ function initGame() {
     gameState.gameOver = false;
     gameState.gameWon = false;
     gameState.playerResetCount = 0;
+    gameState.memoryImageActive = false;
+    gameState.memoryImageIndex = -1;
+    gameState.memoryImageElapsed = 0;
+    gameState.memoryImagePausedSince = 0;
+    gameState.totalPausedTime = 0;
     loadLevel(0);
 }
 
@@ -192,15 +241,23 @@ function loadLevel(levelIndex) {
 }
 
 // Main game loop
-function update() {
+function update(dt) {
     if (gameState.gameOver || gameState.gameWon) {
+        return;
+    }
+
+    if (gameState.memoryImageActive) {
+        gameState.memoryImageElapsed += dt;
+        if (gameState.memoryImageElapsed >= MEMORY_IMAGE_TOTAL_MS) {
+            stopMemoryImage();
+        }
         return;
     }
 
     const level = levels[gameState.currentLevel];
     
     // Update progress
-    const elapsedSeconds = (Date.now() - gameState.gameStartTime) / 1000;
+    const elapsedSeconds = (Date.now() - gameState.gameStartTime - gameState.totalPausedTime) / 1000;
     gameState.gameProgress = Math.min(100, (elapsedSeconds / 60) * 100); // 60 second timer
     
     if (gameState.gameProgress >= 100) {
@@ -315,9 +372,15 @@ function isPointInTriangle(px, py, ax, ay, bx, by, cx, cy) {
         ) {
             fragment.collected = true;
             gameState.memoryFragmentsCollected++;
+            startMemoryImage(gameState.memoryFragmentsCollected - 1);
             gameState.currentMessage = "Memory Fragment collected!";
             gameState.messageTimer = 200;
+            break;
         }
+    }
+
+    if (gameState.memoryImageActive) {
+        return;
     }
 
     // Check level completion
@@ -435,6 +498,39 @@ function draw() {
 
     // Draw UI
     drawUI();
+
+    if (gameState.memoryImageActive) {
+        drawMemoryImageOverlay();
+    }
+}
+
+function drawMemoryImageOverlay() {
+    const image = memoryFragmentImages[gameState.memoryImageIndex] || null;
+    if (!image || !image.complete || image.naturalWidth === 0) {
+        return;
+    }
+
+    const alpha = Math.max(0, Math.min(1, getMemoryImageAlpha()));
+    const canvasRatio = canvas.width / canvas.height;
+    const imageRatio = image.naturalWidth / image.naturalHeight;
+    let drawWidth = canvas.width;
+    let drawHeight = canvas.height;
+
+    if (canvasRatio > imageRatio) {
+        drawWidth = canvas.height * imageRatio;
+    } else {
+        drawHeight = canvas.width / imageRatio;
+    }
+
+    const drawX = (canvas.width - drawWidth) / 2;
+    const drawY = (canvas.height - drawHeight) / 2;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+    ctx.restore();
 }
 
 function drawUI() {
@@ -531,8 +627,16 @@ function wrapText(context, text, x, y, maxWidth, lineHeight) {
 }
 
 // Game loop
-function gameLoop() {
-    update();
+let lastFrameTimestamp = performance.now();
+
+function gameLoop(timestamp) {
+    if (typeof timestamp !== 'number') {
+        timestamp = performance.now();
+    }
+    const dt = timestamp - lastFrameTimestamp;
+    lastFrameTimestamp = timestamp;
+
+    update(dt);
     draw();
     requestAnimationFrame(gameLoop);
 }
