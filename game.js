@@ -434,8 +434,9 @@ function completeGame() {
 
 // Rendering
 function draw() {
-    // Clear canvas with fade effect
-    ctx.fillStyle = '#000';
+    // Clear canvas and keep the CSS background visible
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const level = levels[gameState.currentLevel];
