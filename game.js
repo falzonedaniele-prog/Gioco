@@ -49,8 +49,10 @@ playerImage.src = 'images/cursor.png';
 
 // Platform images and corruption stages
 const CORRUPTION_STAGES = ['normal', 'started', 'corupting', 'intermedie', 'advanced', 'corupted'];
-const PLATFORM_TYPES = ['folder', 'folder','file']; //doble folder becouse the first one does not work for some reason
+const PLATFORM_TYPES = ['folder', 'file'];
 const platformImages = {};
+const HOLE_TYPES = ['square', 'triangle', 'circle'];
+const holeImages = {};
 
 for (let stage of CORRUPTION_STAGES) {
     for (let type of PLATFORM_TYPES) {
@@ -59,6 +61,12 @@ for (let stage of CORRUPTION_STAGES) {
         image.src = `images/${stage}/${type}.png`;
         platformImages[key] = image;
     }
+}
+
+for (let type of HOLE_TYPES) {
+    const image = new Image();
+    image.src = `images/${type}.png`;
+    holeImages[type] = image;
 }
 
 function getPlatformType(platform) {
@@ -70,6 +78,86 @@ function getPlatformType(platform) {
         if (platform.image.includes('file')) return 'file';
     }
     return 'folder';
+}
+
+function getHoleType(hole) {
+    if (hole.type && HOLE_TYPES.includes(hole.type)) {
+        return hole.type;
+    }
+    if (hole.image) {
+        if (hole.image.includes('square')) return 'square';
+        if (hole.image.includes('triangle')) return 'triangle';
+        if (hole.image.includes('circle')) return 'circle';
+    }
+    return 'triangle';
+}
+
+function getHoleImage(hole) {
+    return holeImages[getHoleType(hole)] || holeImages['triangle'];
+}
+
+function getHoleSize(hole) {
+    const image = getHoleImage(hole);
+    const width = hole.w || (image && image.naturalWidth) || 50;
+    const height = hole.h || (image && image.naturalHeight) || width;
+    if (getHoleType(hole) === 'square' || getHoleType(hole) === 'circle') {
+        return { w: width, h: width };
+    }
+    return { w: width, h: height };
+}
+
+function getHoleBounds(hole) {
+    const size = getHoleSize(hole);
+    return { x: hole.x, y: hole.y, w: size.w, h: size.h };
+}
+
+function isPointInRect(px, py, x, y, w, h) {
+    return px >= x && px <= x + w && py >= y && py <= y + h;
+}
+
+function isPointInCircle(px, py, cx, cy, r) {
+    const dx = px - cx;
+    const dy = py - cy;
+    return dx * dx + dy * dy <= r * r;
+}
+
+function isPointInTriangle(px, py, ax, ay, bx, by, cx, cy) {
+    const v0x = cx - ax, v0y = cy - ay;
+    const v1x = bx - ax, v1y = by - ay;
+    const v2x = px - ax, v2y = py - ay;
+
+    const dot00 = v0x * v0x + v0y * v0y;
+    const dot01 = v0x * v1x + v0y * v1y;
+    const dot02 = v0x * v2x + v0y * v2y;
+    const dot11 = v1x * v1x + v1y * v1y;
+    const dot12 = v1x * v2x + v1y * v2y;
+
+    const invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+    const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+    const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+    return (u >= 0) && (v >= 0) && (u + v <= 1);
+}
+
+function isPointInHole(hole, point, bounds) {
+    const type = getHoleType(hole);
+    if (type === 'square') {
+        return isPointInRect(point.x, point.y, bounds.x, bounds.y, bounds.w, bounds.h);
+    }
+    if (type === 'circle') {
+        const radius = bounds.w / 2;
+        const centerX = bounds.x + radius;
+        const centerY = bounds.y + radius;
+        return isPointInCircle(point.x, point.y, centerX, centerY, radius);
+    }
+    // triangle
+    const ax = bounds.x + bounds.w / 2;
+    const ay = bounds.y;
+    const bx = bounds.x + bounds.w;
+    const by = bounds.y + bounds.h;
+    const cx = bounds.x;
+    const cy = bounds.y + bounds.h;
+    return isPointInTriangle(point.x, point.y, ax, ay, bx, by, cx, cy);
 }
 
 function getPlatformCorruptionOrder(platform) {
@@ -198,9 +286,9 @@ const levels = [
             { x: 800, y: 350, w: 140, h: 20, image: 'corrupted_file' },
             { x: 1050, y: 300, w: 100, h: 20, image: 'corrupted_folder' }
         ],
-        hazards: [
-            { x: 400, y: 500, w: 50, h: 50 },
-            { x: 900, y: 450, w: 40, h: 40 }
+        holes: [
+            { x: 400, y: 500, w: 50, h: 50, type: 'square' },
+            { x: 900, y: 450, w: 40, h: 40, type: 'circle' }
         ],
         memoryFragments: [
             { x: 600, y: 550, collected: false, color: '#FF6B9D' }
@@ -225,10 +313,10 @@ const levels = [
             { x: 750, y: 250, w: 85, h: 20, image: 'corrupted_folder' },
             { x: 1050, y: 200, w: 100, h: 20, image: 'corrupted_file' }
         ],
-        hazards: [
-            { x: 200, y: 600, w: 60, h: 60 },
-            { x: 650, y: 500, w: 50, h: 50 },
-            { x: 500, y: 400, w: 70, h: 40 }
+        holes: [
+            { x: 200, y: 600, w: 60, h: 60, type: 'circle' },
+            { x: 650, y: 500, w: 50, h: 50, type: 'square' },
+            { x: 500, y: 400, w: 70, h: 40, type: 'triangle' }
         ],
         memoryFragments: [
             { x: 550, y: 530, collected: false, color: '#4ECDC4' }
@@ -253,10 +341,10 @@ const levels = [
             { x: 900, y: 200, w: 90, h: 20, image: 'corrupted_file' }, //final platform
             { x: 600, y: 100, w: 150, h: 30, image: 'corrupted_folder' } // seventh platform
         ],
-        hazards: [
-            { x: 400, y: 600, w: 80, h: 50 }, //fist hazard
-            { x: 700, y: 550, w: 60, h: 60 }, //second hazard
-            { x: 300, y: 300, w: 90, h: 40 } //third hazard
+        holes: [
+            { x: 400, y: 600, w: 80, h: 50, type: 'triangle' },
+            { x: 700, y: 550, w: 60, h: 60, type: 'circle' },
+            { x: 300, y: 300, w: 90, h: 40, type: 'square' } //third hole
         ],
         memoryFragments: [
             { x: 900, y: 150, collected: false, color: '#FFE66D' }
@@ -374,46 +462,18 @@ function update(dt) {
         }
     }
 
-    // Check if a point is inside a triangle
-function isPointInTriangle(px, py, ax, ay, bx, by, cx, cy) {
-    // Barycentric coordinate method
-    const v0x = cx - ax, v0y = cy - ay;
-    const v1x = bx - ax, v1y = by - ay;
-    const v2x = px - ax, v2y = py - ay;
-
-    const dot00 = v0x * v0x + v0y * v0y;
-    const dot01 = v0x * v1x + v0y * v1y;
-    const dot02 = v0x * v2x + v0y * v2y;
-    const dot11 = v1x * v1x + v1y * v1y;
-    const dot12 = v1x * v2x + v1y * v2y;
-
-    const invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
-    const u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-    const v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-
-    return (u >= 0) && (v >= 0) && (u + v <= 1);
-}
-
-// Hazard collision (triangular)
-    for (let hazard of level.hazards) {
-        // Triangle vertices
-        const ax = hazard.x + hazard.w / 2;  // top center
-        const ay = hazard.y;
-        const bx = hazard.x + hazard.w;       // bottom right
-        const by = hazard.y + hazard.h;
-        const cx = hazard.x;                  // bottom left
-        const cy = hazard.y + hazard.h;
-
-        // Check multiple points on player for better detection
+    // Hole collision
+    for (let hole of level.holes) {
+        const bounds = getHoleBounds(hole);
         const checkPoints = [
-            { x: player.x + player.width / 2, y: player.y + player.height }, // bottom center
-            { x: player.x + player.width / 2, y: player.y + player.height / 2 }, // center
-            { x: player.x, y: player.y + player.height }, // bottom left
-            { x: player.x + player.width, y: player.y + player.height } // bottom right
+            { x: player.x + player.width / 2, y: player.y + player.height },
+            { x: player.x + player.width / 2, y: player.y + player.height / 2 },
+            { x: player.x, y: player.y + player.height },
+            { x: player.x + player.width, y: player.y + player.height }
         ];
 
         for (let point of checkPoints) {
-            if (isPointInTriangle(point.x, point.y, ax, ay, bx, by, cx, cy)) {
+            if (isPointInHole(hole, point, bounds)) {
                 resetPlayer();
                 break;
             }
@@ -527,15 +587,32 @@ function draw() {
 
     }
 
-    // Draw hazards (red triangles)
-    ctx.fillStyle = '#FF4444';
-    for (let hazard of level.hazards) {
-        ctx.beginPath();
-        ctx.moveTo(hazard.x + hazard.w / 2, hazard.y);
-        ctx.lineTo(hazard.x + hazard.w, hazard.y + hazard.h);
-        ctx.lineTo(hazard.x, hazard.y + hazard.h);
-        ctx.closePath();
-        ctx.fill();
+    // Draw holes
+    for (let hole of level.holes) {
+        const bounds = getHoleBounds(hole);
+        const holeImg = getHoleImage(hole);
+
+        if (holeImg && holeImg.complete && holeImg.naturalWidth !== 0) {
+            ctx.drawImage(holeImg, bounds.x, bounds.y, bounds.w, bounds.h);
+        } else {
+            const type = getHoleType(hole);
+            ctx.fillStyle = '#FF4444';
+
+            if (type === 'circle') {
+                ctx.beginPath();
+                ctx.arc(bounds.x + bounds.w / 2, bounds.y + bounds.h / 2, bounds.w / 2, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (type === 'square') {
+                ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(bounds.x + bounds.w / 2, bounds.y);
+                ctx.lineTo(bounds.x + bounds.w, bounds.y + bounds.h);
+                ctx.lineTo(bounds.x, bounds.y + bounds.h);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
     }
 
     // Draw memory fragments
