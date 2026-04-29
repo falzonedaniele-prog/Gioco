@@ -47,15 +47,73 @@ let player = {
 const playerImage = new Image();
 playerImage.src = 'images/cursor.png';
 
-// Platform images
-const platformImageKeys = ['corrupted_folder', 'corrupted_file'];
+// Platform images and corruption stages
+const CORRUPTION_STAGES = ['normal', 'started', 'corupting', 'intermedie', 'advanced', 'corupted'];
+const PLATFORM_TYPES = ['folder', 'folder','file']; //doble folder becouse the first one does not work for some reason
 const platformImages = {};
-const DEFAULT_PLATFORM_IMAGE = 'corrupted_folder';
 
-for (let key of platformImageKeys) {
-    const image = new Image();
-    image.src = `images/${key}.png`;
-    platformImages[key] = image;
+for (let stage of CORRUPTION_STAGES) {
+    for (let type of PLATFORM_TYPES) {
+        const key = `${stage}_${type}`;
+        const image = new Image();
+        image.src = `images/${stage}/${type}.png`;
+        platformImages[key] = image;
+    }
+}
+
+function getPlatformType(platform) {
+    if (platform.type && PLATFORM_TYPES.includes(platform.type)) {
+        return platform.type;
+    }
+    if (platform.image) {
+        if (platform.image.includes('folder')) return 'folder';
+        if (platform.image.includes('file')) return 'file';
+    }
+    return 'folder';
+}
+
+function getPlatformCorruptionOrder(platform) {
+    if (typeof platform.corruptionOrder !== 'number') {
+        platform.corruptionOrder = Math.random();
+    }
+    return platform.corruptionOrder;
+}
+
+function getPlatformCorruptionStage(platform) {
+    const progress = gameState.gameProgress;
+    const order = getPlatformCorruptionOrder(platform);
+
+    if (progress >= 90) return 'corupted';
+    if (progress < 20) {
+        return order <= progress / 20 ? 'started' : 'normal';
+    }
+    if (progress < 45) {
+        return order <= (progress - 20) / 25 ? 'corupting' : 'started';
+    }
+    if (progress < 65) {
+        return order <= (progress - 45) / 20 ? 'intermedie' : 'corupting';
+    }
+    if (progress < 75) {
+        return order <= (progress - 65) / 10 ? 'advanced' : 'intermedie';
+    }
+    if (progress < 90) {
+        return order <= (progress - 75) / 15 ? 'corupted' : 'advanced';
+    }
+    return 'corupted';
+}
+
+function getGlobalCorruptionStage(progress) {
+    if (progress >= 90) return 'corupted';
+    if (progress >= 75) return 'advanced';
+    if (progress >= 65) return 'intermedie';
+    if (progress >= 45) return 'corupting';
+    if (progress >= 20) return 'started';
+    return 'normal';
+}
+
+function setCanvasBackgroundForProgress(progress) {
+    const stage = getGlobalCorruptionStage(progress);
+    canvas.style.backgroundImage = `url("images/${stage}/wallpaper.jpg")`;
 }
 
 function getPlatformBounds(platform) {
@@ -71,7 +129,9 @@ function getPlatformBounds(platform) {
 }
 
 function getPlatformImage(platform) {
-    return platformImages[platform.image || DEFAULT_PLATFORM_IMAGE] || platformImages[DEFAULT_PLATFORM_IMAGE];
+    const stage = getPlatformCorruptionStage(platform);
+    const type = getPlatformType(platform);
+    return platformImages[`${stage}_${type}`] || platformImages[`normal_${type}`];
 }
 
 const memoryFragmentImageFiles = ['ChildLaugh.jpg', 'Companion.jpg', 'Victory.jpg'];
@@ -228,16 +288,22 @@ function initGame() {
 function loadLevel(levelIndex) {
     gameState.currentLevel = levelIndex;
     const level = levels[levelIndex];
-    
+
+    for (let platform of level.platforms) {
+        getPlatformType(platform);
+        getPlatformCorruptionOrder(platform);
+    }
+
     player.x = level.spawnX;
     player.y = level.spawnY;
     player.velocityX = 0;
     player.velocityY = 0;
     player.grounded = false;
-    
+
     gameState.currentMessage = level.narrative;
     gameState.messageTimer = 300;
     gameState.desaturation = levelIndex * 0.3;
+    setCanvasBackgroundForProgress(gameState.gameProgress);
 }
 
 // Main game loop
@@ -259,7 +325,8 @@ function update(dt) {
     // Update progress
     const elapsedSeconds = (Date.now() - gameState.gameStartTime - gameState.totalPausedTime) / 1000;
     gameState.gameProgress = Math.min(100, (elapsedSeconds / 60) * 100); // 60 second timer
-    
+    setCanvasBackgroundForProgress(gameState.gameProgress);
+
     if (gameState.gameProgress >= 100) {
         gameState.gameOver = true;
         gameState.currentMessage = "SYSTEM SHUTDOWN: Data erased.";
